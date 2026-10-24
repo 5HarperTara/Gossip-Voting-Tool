@@ -1,0 +1,2737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="一个玻璃拟态风格的凑热闹投票器。" />
+  <title>凑热闹投票器 · 人类的本质是凑热闹</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%89%3C/text%3E%3C/svg%3E" />
+  <style>
+    @property --angle {
+      syntax: "<angle>";
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    :root {
+      --ink: #f7f2ff;
+      --muted: rgba(247, 242, 255, 0.62);
+      --faint: rgba(247, 242, 255, 0.38);
+      --glass: rgba(255, 255, 255, 0.075);
+      --stroke: rgba(255, 255, 255, 0.14);
+      --pink: #ff6b8a;
+      --amber: #ffb86c;
+      --mint: #6ee7d7;
+      --violet: #a78bfa;
+      --ease: cubic-bezier(0.22, 0.8, 0.25, 1);
+      --font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100svh;
+      background: #09070f;
+      color: var(--ink);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    button { font: inherit; }
+
+    button:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.72);
+      outline-offset: 3px;
+    }
+
+    ::selection {
+      background: rgba(255, 107, 138, 0.32);
+      color: #fff;
+    }
+
+    /* ————— 背景 ————— */
+    .scene {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+      background:
+        radial-gradient(1200px 800px at 18% 10%, rgba(255, 107, 138, 0.15), transparent 62%),
+        radial-gradient(1000px 760px at 88% 20%, rgba(147, 100, 255, 0.16), transparent 62%),
+        radial-gradient(900px 700px at 70% 100%, rgba(110, 231, 215, 0.08), transparent 62%),
+        #09070f;
+    }
+
+    .scene::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 32%);
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(84px);
+      will-change: transform;
+    }
+
+    .orb-1 {
+      width: 46vw;
+      height: 46vw;
+      min-width: 420px;
+      min-height: 420px;
+      left: -12vw;
+      top: -16vw;
+      background: radial-gradient(circle at 42% 40%, rgba(255, 86, 143, 0.74), rgba(255, 86, 143, 0) 68%);
+      animation: drift-a 24s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+      width: 44vw;
+      height: 44vw;
+      min-width: 380px;
+      min-height: 380px;
+      right: -13vw;
+      top: -10vw;
+      background: radial-gradient(circle at 50% 50%, rgba(124, 86, 255, 0.6), rgba(124, 86, 255, 0) 70%);
+      animation: drift-b 28s ease-in-out infinite alternate;
+    }
+
+    .orb-3 {
+      width: 38vw;
+      height: 38vw;
+      min-width: 320px;
+      min-height: 320px;
+      left: 4vw;
+      bottom: -24vw;
+      background: radial-gradient(circle at 50% 50%, rgba(45, 212, 191, 0.35), rgba(45, 212, 191, 0) 70%);
+      animation: drift-c 30s ease-in-out infinite alternate;
+    }
+
+    .orb-4 {
+      width: 24vw;
+      height: 24vw;
+      min-width: 220px;
+      min-height: 220px;
+      right: 10vw;
+      bottom: 2vh;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 170, 90, 0.3), rgba(255, 170, 90, 0) 70%);
+      filter: blur(70px);
+      animation: drift-d 20s ease-in-out infinite alternate;
+    }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      opacity: 0.075;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .float-note {
+      position: fixed;
+      z-index: 1;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 13px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.065);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      backdrop-filter: blur(18px) saturate(150%);
+      color: rgba(247, 242, 255, 0.72);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+      animation: float-note 8s ease-in-out infinite;
+    }
+
+    @media (min-width: 1180px) {
+      .float-note { display: flex; }
+    }
+
+    .note-a { right: 4.2vw; top: 22%; --rot: 4deg; }
+    .note-b { left: 5vw; bottom: 15%; --rot: -5deg; animation-delay: -3.2s; }
+
+    /* ————— 布局 ————— */
+    .stage {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(24px, 4vh, 44px);
+      width: min(1180px, 100%);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 28px clamp(20px, 4vw, 44px) 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      animation: fade-down 0.8s var(--ease) both;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: rgba(247, 242, 255, 0.8);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #ff9bb0, #ff7a95 42%, #c084fc);
+      box-shadow: 0 8px 24px rgba(255, 107, 138, 0.26), inset 0 1px 1px rgba(255, 255, 255, 0.55);
+      color: #200d16;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.055);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      color: var(--muted);
+      font-size: 11.5px;
+      letter-spacing: 0.02em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .live-pill b {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+    }
+
+    .live-dot {
+      position: relative;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 10px rgba(110, 231, 215, 0.8);
+    }
+
+    .live-dot::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border: 1px solid rgba(110, 231, 215, 0.48);
+      border-radius: 50%;
+      animation: ping 2.4s ease-out infinite;
+    }
+
+    .date {
+      color: rgba(247, 242, 255, 0.32);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+      flex: 1;
+      gap: clamp(32px, 4.5vw, 64px);
+      align-items: center;
+      padding: 8px 0 10px;
+    }
+
+    /* ————— 左侧文案 ————— */
+    .intro { min-width: 0; max-width: 480px; }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      color: rgba(247, 242, 255, 0.44);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      animation: rise 0.7s 0.08s var(--ease) both;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 26px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--pink), transparent);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(46px, 5.5vw, 76px);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      animation: rise 0.8s 0.16s var(--ease) both;
+    }
+
+    h1 .hl {
+      position: relative;
+      display: inline-block;
+      background: linear-gradient(100deg, #ffd3ae 0%, #ff91a8 43%, #ff5f8f 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    h1 .hl::after {
+      content: "";
+      position: absolute;
+      right: 1%;
+      bottom: -8px;
+      left: 1%;
+      height: 6px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, transparent, rgba(255, 107, 138, 0.7), rgba(255, 184, 108, 0.6), transparent);
+      filter: blur(1px);
+      transform: rotate(-1.2deg);
+      opacity: 0.9;
+    }
+
+    h1 .dot { color: var(--pink); }
+
+    .lede {
+      max-width: 370px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.9;
+      letter-spacing: 0.01em;
+      animation: rise 0.8s 0.24s var(--ease) both;
+    }
+
+    .lede strong {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+
+    .lede-line { white-space: nowrap; }
+
+    .heat-card {
+      width: min(100%, 386px);
+      margin-top: 32px;
+      padding: 17px 19px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      -webkit-backdrop-filter: blur(22px) saturate(150%);
+      backdrop-filter: blur(22px) saturate(150%);
+      animation: rise 0.8s 0.34s var(--ease) both;
+    }
+
+    .heat-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .heat-label {
+      display: block;
+      margin-bottom: 4px;
+      color: rgba(247, 242, 255, 0.46);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+    }
+
+    .heat-value {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .heat-value small {
+      color: rgba(247, 242, 255, 0.38);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+
+    .heat-tag {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border: 1px solid rgba(110, 231, 215, 0.18);
+      border-radius: 999px;
+      background: rgba(110, 231, 215, 0.09);
+      color: #9af3e6;
+      font-size: 9.5px;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .heat-tag::before {
+      content: "";
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 8px rgba(110, 231, 215, 0.8);
+    }
+
+    .equalizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 31px;
+      margin: 14px 0 11px;
+    }
+
+    .equalizer span {
+      flex: 1;
+      border-radius: 2px;
+      background: linear-gradient(to top, rgba(255, 107, 138, 0.85), rgba(255, 184, 108, 0.44));
+      transform-origin: bottom;
+      animation: eq 1.15s ease-in-out infinite alternate;
+      animation-delay: var(--d);
+      opacity: 0.8;
+    }
+
+    .heat-caption {
+      margin: 0;
+      color: rgba(247, 242, 255, 0.42);
+      font-size: 10.5px;
+      line-height: 1.6;
+    }
+
+    .footnote {
+      margin-top: 26px;
+      color: rgba(247, 242, 255, 0.28);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      animation: rise 0.8s 0.42s var(--ease) both;
+    }
+
+    /* ————— 投票卡片 ————— */
+    .vote-card {
+      position: relative;
+      justify-self: end;
+      width: 100%;
+      max-width: 620px;
+      padding: clamp(22px, 2.5vw, 30px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 30px;
+      background:
+        radial-gradient(140% 100% at 4% -20%, rgba(255, 255, 255, 0.17), transparent 54%),
+        radial-gradient(90% 80% at 102% 112%, rgba(255, 255, 255, 0.055), transparent 60%),
+        linear-gradient(150deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035) 48%, rgba(255, 255, 255, 0.075));
+      box-shadow:
+        0 32px 90px rgba(0, 0, 0, 0.5),
+        0 0 90px rgba(255, 107, 138, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.26),
+        inset 0 -26px 60px rgba(255, 255, 255, 0.018);
+      -webkit-backdrop-filter: blur(42px) saturate(180%) brightness(1.03);
+      backdrop-filter: blur(42px) saturate(180%) brightness(1.03);
+      animation: card-in 0.95s 0.2s var(--ease) both;
+    }
+
+    .vote-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      padding: 1px;
+      border-radius: inherit;
+      background: conic-gradient(
+        from var(--angle),
+        rgba(255, 255, 255, 0.62),
+        rgba(255, 107, 138, 0.4) 20%,
+        rgba(124, 86, 255, 0.36) 44%,
+        rgba(110, 231, 215, 0.32) 66%,
+        rgba(255, 255, 255, 0.62)
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: rim-spin 16s linear infinite;
+      pointer-events: none;
+    }
+
+    .vote-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background:
+        radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, 0.16), transparent 64%),
+        radial-gradient(120% 70% at 12% 0%, rgba(255, 255, 255, 0.1), transparent 46%);
+      opacity: 0.95;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .vote-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .poll-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: rgba(247, 242, 255, 0.42);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .status::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 10px rgba(110, 231, 215, 0.8);
+    }
+
+    .poll-no { font-variant-numeric: tabular-nums; }
+
+    .poll-head {
+      margin: 15px 0 15px;
+    }
+
+    .poll-head h2 {
+      margin: 0 0 7px;
+      font-size: clamp(25px, 2.4vw, 31px);
+      font-weight: 600;
+      line-height: 1.34;
+      letter-spacing: -0.025em;
+    }
+
+    .poll-head h2 span { color: rgba(247, 242, 255, 0.54); }
+
+    .poll-head h2:focus { outline: none; }
+
+    .poll-sub {
+      margin: 0;
+      color: rgba(247, 242, 255, 0.42);
+      font-size: 11.5px;
+      line-height: 1.6;
+    }
+
+    .view { animation: fade-up 0.42s var(--ease) both; }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .option {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 91px;
+      padding: 13px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.022));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        transform 0.35s var(--ease),
+        border-color 0.35s ease,
+        background 0.35s ease,
+        box-shadow 0.35s ease;
+    }
+
+    .option::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(118deg, rgba(255, 255, 255, 0.16), transparent 34%, transparent 66%, rgba(255, 255, 255, 0.07));
+      opacity: 0.75;
+      pointer-events: none;
+    }
+
+    .option::after {
+      content: "";
+      position: absolute;
+      top: -40%;
+      right: -30%;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(var(--tint), 0.18), transparent 68%);
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      pointer-events: none;
+    }
+
+    .option:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.035));
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .option:hover::after { opacity: 1; }
+
+    .option.is-selected {
+      border-color: rgba(var(--tint), 0.72);
+      background: linear-gradient(145deg, rgba(var(--tint), 0.2), rgba(255, 255, 255, 0.065));
+      box-shadow:
+        0 12px 36px rgba(var(--tint), 0.13),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    .option-emoji {
+      display: grid;
+      flex: none;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.075);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      font-size: 22px;
+      line-height: 1;
+      transition: transform 0.35s var(--ease);
+    }
+
+    .option.is-selected .option-emoji,
+    .option:hover .option-emoji { transform: scale(1.06) rotate(-3deg); }
+
+    .option-text {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .option-text strong {
+      font-size: 13.5px;
+      font-weight: 500;
+      line-height: 1.35;
+      letter-spacing: -0.01em;
+    }
+
+    .option-text small {
+      color: rgba(247, 242, 255, 0.4);
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    .check {
+      display: grid;
+      flex: none;
+      width: 21px;
+      height: 21px;
+      place-items: center;
+      margin-left: auto;
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      color: transparent;
+      transition:
+        background 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        transform 0.3s var(--ease);
+    }
+
+    .check svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 0.25s ease, transform 0.3s var(--ease);
+    }
+
+    .option.is-selected .check {
+      border-color: transparent;
+      background: rgb(var(--tint));
+      color: #170d15;
+      box-shadow: 0 0 18px rgba(var(--tint), 0.45);
+      transform: scale(1.05);
+    }
+
+    .option.is-selected .check svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .submit {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: 52px;
+      margin-top: 14px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      background: linear-gradient(100deg, #ff93a9 0%, #ffae7d 100%);
+      box-shadow: 0 12px 32px rgba(255, 122, 149, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      color: #241019;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: transform 0.3s var(--ease), box-shadow 0.3s ease, filter 0.3s ease;
+    }
+
+    .submit:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.035);
+      box-shadow: 0 16px 40px rgba(255, 122, 149, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .submit:active:not(:disabled) { transform: translateY(0) scale(0.995); }
+
+    .submit:disabled {
+      border-color: rgba(255, 255, 255, 0.07);
+      background: rgba(255, 255, 255, 0.055);
+      box-shadow: none;
+      color: rgba(255, 255, 255, 0.28);
+      cursor: not-allowed;
+    }
+
+    .cta-icon {
+      display: inline-block;
+      font-size: 15px;
+      transition: transform 0.3s var(--ease);
+    }
+
+    .submit:hover:not(:disabled) .cta-icon { transform: translate(2px, -2px); }
+
+    .hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 13px;
+      color: rgba(247, 242, 255, 0.37);
+      font-size: 10.5px;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+
+    .hint b {
+      color: rgba(255, 255, 255, 0.78);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .avatars {
+      display: flex;
+      flex: none;
+    }
+
+    .avatars span {
+      display: grid;
+      width: 21px;
+      height: 21px;
+      place-items: center;
+      margin-left: -6px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 50%;
+      color: #1a0d16;
+      font-size: 9px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .avatars span:first-child { margin-left: 0; }
+    .av-1 { background: linear-gradient(145deg, #ffb1c1, #ff7c99); }
+    .av-2 { background: linear-gradient(145deg, #ffd2a1, #ffad67); }
+    .av-3 { background: linear-gradient(145deg, #b9f6ea, #6ee7d7); }
+
+    /* ————— 结果 ————— */
+    .result-kicker {
+      color: rgba(110, 231, 215, 0.72);
+      font-size: 9.5px;
+      letter-spacing: 0.16em;
+    }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 184, 108, 0.22);
+      border-radius: 999px;
+      background: rgba(255, 184, 108, 0.1);
+      color: #ffd2a1;
+      font-size: 9.5px;
+      letter-spacing: 0.06em;
+    }
+
+    .result-badge.is-minority {
+      border-color: rgba(167, 139, 250, 0.24);
+      background: rgba(167, 139, 250, 0.11);
+      color: #d3c5ff;
+    }
+
+    .result-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 3px 0 18px;
+    }
+
+    .result-copy { min-width: 0; }
+
+    .result-copy h3 {
+      margin: 9px 0 6px;
+      font-size: clamp(22px, 2.2vw, 27px);
+      font-weight: 600;
+      line-height: 1.32;
+      letter-spacing: -0.025em;
+    }
+
+    .result-copy h3:focus { outline: none; }
+
+    .result-copy p {
+      max-width: 330px;
+      margin: 0;
+      color: rgba(247, 242, 255, 0.46);
+      font-size: 11.5px;
+      line-height: 1.72;
+    }
+
+    .result-score {
+      flex: none;
+      padding-top: 1px;
+      text-align: right;
+    }
+
+    .big-share {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      background: linear-gradient(135deg, #fff 10%, #ffbd91 55%, #ff6b8a 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-size: clamp(47px, 4.8vw, 62px);
+      font-weight: 700;
+      line-height: 0.94;
+      letter-spacing: -0.055em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .big-share em {
+      margin: 3px 0 0 2px;
+      font-size: 0.36em;
+      font-style: normal;
+      letter-spacing: 0;
+    }
+
+    .result-score small {
+      display: block;
+      margin-top: 8px;
+      color: rgba(247, 242, 255, 0.34);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+    }
+
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-row {
+      padding: 9px 11px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.055);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      animation: rise 0.5s var(--ease) both;
+      animation-delay: calc(var(--i) * 0.055s);
+    }
+
+    .result-row.is-mine {
+      border-color: rgba(var(--tint), 0.24);
+      background: linear-gradient(100deg, rgba(var(--tint), 0.115), rgba(255, 255, 255, 0.032));
+    }
+
+    .result-meta {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .result-emoji {
+      flex: none;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .result-name {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      font-size: 11.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-name em {
+      flex: none;
+      padding: 2px 5px;
+      border-radius: 5px;
+      font-size: 8px;
+      font-style: normal;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-top {
+      background: rgba(255, 184, 108, 0.16);
+      color: #ffd2a1;
+    }
+
+    .badge-you {
+      background: rgba(255, 255, 255, 0.9);
+      color: #1a101c;
+    }
+
+    .result-num {
+      flex: none;
+      color: rgba(247, 242, 255, 0.36);
+      font-size: 9.5px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .result-num b {
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .bar {
+      height: 5px;
+      margin-top: 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.065);
+    }
+
+    .bar span {
+      display: block;
+      width: var(--w);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(var(--tint), 0.55), rgba(var(--tint), 1));
+      box-shadow: 0 0 14px rgba(var(--tint), 0.35);
+      animation: bar-grow 0.9s var(--ease) both;
+      animation-delay: calc(var(--i) * 0.055s + 0.12s);
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .ghost {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 43px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(247, 242, 255, 0.72);
+      font-size: 11.5px;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s var(--ease);
+    }
+
+    .ghost:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.19);
+      background: rgba(255, 255, 255, 0.085);
+      color: #fff;
+    }
+
+    .ghost.primary {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.11);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ghost.muted { color: rgba(247, 242, 255, 0.4); }
+
+    .result-note {
+      margin: 10px 0 0;
+      color: rgba(247, 242, 255, 0.24);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    /* ————— 热搜榜单 ————— */
+    .hot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hot-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.065);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        transform 0.3s var(--ease),
+        border-color 0.3s ease,
+        background 0.3s ease;
+    }
+
+    .hot-btn:hover {
+      transform: translateX(3px);
+      border-color: rgba(255, 255, 255, 0.16);
+      background: linear-gradient(100deg, rgba(255, 107, 138, 0.09), rgba(255, 255, 255, 0.05));
+    }
+
+    .hot-rank {
+      flex: none;
+      width: 22px;
+      color: rgba(247, 242, 255, 0.3);
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      text-align: center;
+    }
+
+    .hot-row:nth-child(1) .hot-rank { color: #ff7c99; text-shadow: 0 0 14px rgba(255, 107, 138, 0.55); }
+    .hot-row:nth-child(2) .hot-rank { color: #ffb86c; }
+    .hot-row:nth-child(3) .hot-rank { color: #6ee7d7; }
+
+    .hot-main {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .hot-title {
+      display: block;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hot-btn.is-eaten .hot-title { color: rgba(247, 242, 255, 0.62); }
+
+    .hot-meta {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(247, 242, 255, 0.42);
+      font-size: 9px;
+      letter-spacing: 0.02em;
+    }
+
+    .hot-cat {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(247, 242, 255, 0.6);
+    }
+
+    .hot-heat {
+      color: rgba(255, 184, 108, 0.85);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hot-eaten {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(255, 107, 138, 0.16);
+      color: #ffb0c2;
+      font-size: 8.5px;
+      letter-spacing: 0.04em;
+    }
+
+    .hot-go {
+      flex: none;
+      color: rgba(247, 242, 255, 0.22);
+      font-size: 12px;
+      transition: color 0.3s ease, transform 0.3s var(--ease);
+    }
+
+    .hot-btn:hover .hot-go { color: rgba(255, 255, 255, 0.78); transform: translateX(2px); }
+
+    .list-note {
+      margin: 13px 0 0;
+      color: rgba(247, 242, 255, 0.26);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    /* ————— 话题详情 ————— */
+    .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding: 6px 12px 6px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.045);
+      color: rgba(247, 242, 255, 0.6);
+      font-size: 10.5px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .back:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.09);
+      color: #fff;
+    }
+
+    .topic-head { margin-bottom: 16px; }
+
+    .topic-tag {
+      display: inline-flex;
+      padding: 3px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(247, 242, 255, 0.55);
+      font-size: 9.5px;
+      letter-spacing: 0.06em;
+    }
+
+    .topic-head h2 {
+      margin: 9px 0 8px;
+      font-size: clamp(20px, 2vw, 24px);
+      font-weight: 600;
+      line-height: 1.32;
+      letter-spacing: -0.02em;
+    }
+
+    .topic-head h2:focus { outline: none; }
+
+    .topic-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      margin: 0;
+      color: rgba(247, 242, 255, 0.38);
+      font-size: 10.5px;
+    }
+
+    .topic-meta b {
+      color: #ffbd91;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .origin-link {
+      color: rgba(167, 139, 250, 0.9);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(167, 139, 250, 0.36);
+    }
+
+    .origin-link:hover { color: #d3c5ff; border-bottom-color: rgba(211, 197, 255, 0.7); }
+
+    .vote-label {
+      margin: 0 0 11px;
+      color: rgba(247, 242, 255, 0.42);
+      font-size: 10.5px;
+      letter-spacing: 0.06em;
+    }
+
+    /* ————— 事件速览 ————— */
+    .brief {
+      position: relative;
+      margin-bottom: 16px;
+      padding: 12px 13px 12px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 16px;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      -webkit-backdrop-filter: blur(18px) saturate(155%);
+      backdrop-filter: blur(18px) saturate(155%);
+    }
+
+    .brief::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      bottom: 14px;
+      left: 0;
+      width: 2px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, rgba(255, 107, 138, 0.9), rgba(167, 139, 250, 0.5));
+      box-shadow: 0 0 12px rgba(255, 107, 138, 0.5);
+    }
+
+    .brief-label {
+      display: block;
+      margin-bottom: 5px;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+    }
+
+    .brief p {
+      margin: 0;
+      color: rgba(247, 242, 255, 0.76);
+      font-size: 11.5px;
+      line-height: 1.8;
+    }
+
+    .brief-note {
+      display: block;
+      margin-top: 6px;
+      color: rgba(247, 242, 255, 0.26);
+      font-size: 8.5px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ————— 阵营投票 ————— */
+    .options.camps {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 7px;
+    }
+
+    .options.camps .option {
+      min-height: 58px;
+      padding: 9px 12px;
+      border-radius: 15px;
+    }
+
+    .options.camps .option-emoji {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      font-size: 17px;
+    }
+
+    .options.camps .option-text { flex-direction: row; align-items: center; }
+    .options.camps .option-text strong { font-size: 13px; }
+
+    .camp-share {
+      flex: none;
+      color: rgba(247, 242, 255, 0.32);
+      font-size: 9.5px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* ————— 围观发言 ————— */
+    .talk {
+      margin-top: 16px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .talk-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .talk-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: rgba(247, 242, 255, 0.72);
+      font-size: 11.5px;
+      letter-spacing: 0.04em;
+    }
+
+    .talk-title::before {
+      content: "";
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 8px rgba(255, 107, 138, 0.8);
+    }
+
+    .talk-count {
+      color: rgba(247, 242, 255, 0.3);
+      font-size: 9.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .talk-form {
+      display: flex;
+      gap: 7px;
+      margin-top: 10px;
+      align-items: stretch;
+    }
+
+    .talk-input {
+      flex: 1;
+      min-height: 42px;
+      max-height: 96px;
+      padding: 9px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      color: var(--ink);
+      font: inherit;
+      font-size: 11px;
+      line-height: 1.6;
+      resize: none;
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+      backdrop-filter: blur(12px) saturate(150%);
+    }
+
+    .talk-input::placeholder { color: rgba(247, 242, 255, 0.28); }
+
+    .talk-input:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.24);
+      background: rgba(255, 255, 255, 0.075);
+    }
+
+    .talk-send {
+      flex: none;
+      padding: 0 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.11);
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+    }
+
+    .talk-send:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.26);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .talk-send:disabled { opacity: 0.36; cursor: not-allowed; }
+
+    .talk-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 0;
+    }
+
+    .talk-tab {
+      padding: 4px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.035);
+      color: rgba(247, 242, 255, 0.46);
+      font-size: 9.5px;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+
+    .talk-tab:hover { color: rgba(255, 255, 255, 0.78); }
+
+    .talk-tab.is-active {
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.13);
+      color: #fff;
+    }
+
+    .talk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .talk-item {
+      padding: 9px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .talk-item.is-camp {
+      border-color: rgba(var(--tint), 0.2);
+      background: linear-gradient(100deg, rgba(var(--tint), 0.1), rgba(255, 255, 255, 0.028));
+    }
+
+    .talk-meta {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+    }
+
+    .talk-camp {
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(var(--tint), 0.18);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 8.5px;
+      letter-spacing: 0.03em;
+    }
+
+    .talk-time {
+      color: rgba(247, 242, 255, 0.26);
+      font-size: 8.5px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .talk-text {
+      margin: 0;
+      color: rgba(247, 242, 255, 0.66);
+      font-size: 11px;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+
+    .talk-empty {
+      margin: 14px 0 2px;
+      color: rgba(247, 242, 255, 0.28);
+      font-size: 10px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .talk-empty[hidden] { display: none; }
+
+    /* ————— 页脚、弹层 ————— */
+    .site-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 2px;
+      color: rgba(247, 242, 255, 0.25);
+      font-size: 9px;
+      letter-spacing: 0.13em;
+      animation: fade-up 0.8s 0.6s var(--ease) both;
+    }
+
+    .site-foot .tag {
+      color: rgba(247, 242, 255, 0.44);
+      letter-spacing: 0.05em;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      z-index: 100;
+      padding: 11px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      background: rgba(30, 22, 40, 0.74);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      -webkit-backdrop-filter: blur(22px) saturate(150%);
+      backdrop-filter: blur(22px) saturate(150%);
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 11.5px;
+      letter-spacing: 0.02em;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 15px);
+      transition: opacity 0.35s ease, transform 0.35s var(--ease);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .burst {
+      position: fixed;
+      z-index: 99;
+      font-size: 20px;
+      pointer-events: none;
+      animation: burst 0.95s var(--ease) forwards;
+      will-change: transform, opacity;
+    }
+
+    /* ————— 动画 ————— */
+    @keyframes drift-a {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to { transform: translate3d(6vw, 5vh, 0) scale(1.1); }
+    }
+
+    @keyframes drift-b {
+      from { transform: translate3d(0, 0, 0) scale(1.05); }
+      to { transform: translate3d(-5vw, 6vh, 0) scale(0.94); }
+    }
+
+    @keyframes drift-c {
+      from { transform: translate3d(0, 0, 0) scale(0.96); }
+      to { transform: translate3d(4vw, -4vh, 0) scale(1.08); }
+    }
+
+    @keyframes drift-d {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(-3vw, -5vh, 0); }
+    }
+
+    @keyframes float-note {
+      0%, 100% { transform: translateY(0) rotate(var(--rot)); }
+      50% { transform: translateY(-10px) rotate(var(--rot)); }
+    }
+
+    @keyframes ping {
+      0% { transform: scale(0.6); opacity: 0.8; }
+      75%, 100% { transform: scale(1.9); opacity: 0; }
+    }
+
+    @keyframes eq {
+      from { transform: scaleY(0.45); opacity: 0.55; }
+      to { transform: scaleY(1); opacity: 0.92; }
+    }
+
+    @keyframes rim-spin {
+      to { --angle: 360deg; }
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fade-down {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(28px) scale(0.975); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes bar-grow {
+      from { width: 0; }
+    }
+
+    @keyframes burst {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+      }
+      12% { opacity: 1; }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1) rotate(var(--r));
+      }
+    }
+
+    /* ————— 响应式 ————— */
+    @media (max-width: 980px) {
+      .stage { gap: 28px; }
+
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+        padding-top: 14px;
+      }
+
+      .intro {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: none;
+        text-align: center;
+      }
+
+      .eyebrow { justify-content: center; margin-bottom: 18px; }
+      .eyebrow::before { display: none; }
+
+      h1 { font-size: clamp(44px, 8.2vw, 64px); }
+
+      .lede {
+        width: 100%;
+        max-width: 460px;
+        margin-top: 22px;
+      }
+
+      .lede br { display: none; }
+
+      .heat-card { max-width: 430px; text-align: left; }
+
+      .footnote { margin-top: 20px; }
+
+      .vote-card {
+        justify-self: center;
+        max-width: 640px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .stage {
+        gap: 22px;
+        padding: 18px 16px 18px;
+      }
+
+      .brand { font-size: 12px; letter-spacing: 0.05em; }
+      .brand-mark { width: 31px; height: 31px; border-radius: 11px; }
+
+      .topbar-right { gap: 0; }
+      .date { display: none; }
+      .live-pill { padding: 8px 11px; font-size: 10.5px; }
+
+      .layout { gap: 26px; padding-top: 8px; }
+
+      .eyebrow {
+        margin-bottom: 15px;
+        font-size: 9px;
+        letter-spacing: 0.18em;
+      }
+
+      h1 { font-size: clamp(38px, 11.5vw, 50px); }
+      h1 .hl::after { bottom: -6px; height: 5px; }
+
+      .lede {
+        max-width: 100%;
+        margin-top: 19px;
+        font-size: 13px;
+        line-height: 1.8;
+      }
+
+      .lede-line { white-space: normal; }
+
+      .heat-card {
+        max-width: 100%;
+        margin-top: 23px;
+        padding: 14px 16px 13px;
+        border-radius: 18px;
+      }
+
+      .heat-value { font-size: 28px; }
+      .equalizer { height: 25px; margin: 11px 0 9px; }
+      .footnote { display: none; }
+
+      .vote-card {
+        padding: 18px;
+        border-radius: 24px;
+      }
+
+      .poll-top { font-size: 9px; }
+      .poll-head { margin: 14px 0 15px; }
+      .poll-head h2 { font-size: 24px; }
+      .poll-sub { font-size: 10.5px; }
+
+      .options { grid-template-columns: 1fr; gap: 8px; }
+
+      .option {
+        min-height: 76px;
+        padding: 11px 12px;
+        border-radius: 15px;
+      }
+
+      .option-emoji {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        font-size: 20px;
+      }
+
+      .option-text strong { font-size: 13px; }
+      .option-text small { font-size: 10px; }
+
+      .submit {
+        height: 49px;
+        margin-top: 11px;
+        border-radius: 14px;
+        font-size: 13px;
+      }
+
+      .hint { margin-top: 11px; font-size: 9.5px; }
+      .avatars span { width: 19px; height: 19px; }
+
+      .result-head {
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      .result-copy h3 { font-size: 20px; }
+      .result-copy p { font-size: 10.5px; }
+      .big-share { font-size: 42px; }
+      .result-score small { font-size: 8px; }
+
+      .result-row { padding: 8px 10px 10px; }
+      .result-name { font-size: 10.5px; }
+      .result-num { font-size: 8.5px; }
+      .result-num b { font-size: 10px; }
+
+      .ghost { height: 41px; font-size: 10.5px; }
+
+      .site-foot {
+        justify-content: center;
+        text-align: center;
+        font-size: 8.5px;
+      }
+
+      .site-foot .tag { display: none; }
+
+      .hot-btn {
+        gap: 9px;
+        padding: 8px 10px;
+        border-radius: 13px;
+      }
+
+      .hot-rank { width: 19px; font-size: 12px; }
+      .hot-title { font-size: 12px; }
+      .hot-meta { font-size: 9px; }
+      .hot-go { font-size: 11px; }
+
+      .topic-head { margin-bottom: 14px; }
+      .topic-head h2 { margin: 8px 0 7px; font-size: 19px; }
+      .back { margin-bottom: 12px; }
+      .vote-label { margin-bottom: 9px; font-size: 10px; }
+
+      .brief {
+        margin-bottom: 13px;
+        padding: 10px 12px 11px 14px;
+        border-radius: 14px;
+      }
+
+      .brief p { font-size: 11px; line-height: 1.75; }
+
+      .options.camps .option {
+        min-height: 54px;
+        padding: 8px 10px;
+      }
+
+      .options.camps .option-emoji {
+        width: 31px;
+        height: 31px;
+        border-radius: 9px;
+        font-size: 16px;
+      }
+
+      .talk { margin-top: 14px; padding-top: 13px; }
+      .talk-input { font-size: 12px; }
+      .talk-text { font-size: 11.5px; }
+    }
+
+    @media (max-width: 380px) {
+      h1 { font-size: 37px; }
+      .live-pill { font-size: 9.5px; padding: 7px 9px; }
+      .brand { gap: 8px; }
+      .brand-mark { width: 28px; height: 28px; font-size: 13px; }
+      .result-copy p { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+
+      .burst { display: none; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="grain"></div>
+  </div>
+
+  <div class="float-note note-a" aria-hidden="true">👀 前排围观</div>
+  <div class="float-note note-b" aria-hidden="true">🍉 瓜已切好</div>
+
+  <main class="stage">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="凑热闹研究所首页">
+        <span class="brand-mark" aria-hidden="true">热</span>
+        <span>凑热闹研究所</span>
+      </a>
+      <div class="topbar-right">
+        <div class="live-pill">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span><b>10</b> 条热搜 · <b>125万</b> 热度</span>
+        </div>
+        <span class="date" id="dateLabel">10.24 周六 · 宜吃瓜</span>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="intro">
+        <div class="eyebrow">WEIBO HOT SEARCH · TOP 10</div>
+        <h1>人类的本质<br />是<span class="hl">凑热闹</span><span class="dot">。</span></h1>
+        <p class="lede">热搜前十已经摆好，瓜还热着。<br /><span class="lede-line">选一条，<strong>先吃为敬</strong>。</span></p>
+
+        <div class="heat-card" aria-label="微博热搜榜热度">
+          <div class="heat-top">
+            <div>
+              <span class="heat-label">榜单总热度</span>
+              <div class="heat-value"><span id="heatValue">125</span><small>万</small></div>
+            </div>
+            <span class="heat-tag">微博热搜</span>
+          </div>
+          <div class="equalizer" id="equalizer" aria-hidden="true"></div>
+          <p class="heat-caption" id="heatCaption">6 条娱乐瓜，够吃到明天。</p>
+        </div>
+
+        <p class="footnote">SNAPSHOT · 微博热搜 10.24 快照 · 数据只保存在本机</p>
+      </aside>
+
+      <section class="vote-card" id="voteCard" aria-label="微博热搜吃瓜投票">
+        <div class="poll-top">
+          <span class="status" id="pollStatus">微博热搜 · 实时围观</span>
+          <span class="poll-no" id="pollNo">TOP 10</span>
+        </div>
+
+        <!-- 榜单视图 -->
+        <div class="view" id="listView">
+          <div class="poll-head">
+            <h2 id="pollTitle" tabindex="-1">今天的热搜<br /><span>先吃哪一口？</span></h2>
+            <p class="poll-sub">按热度排好了 10 条，点一条进场吃瓜。</p>
+          </div>
+
+          <ol class="hot-list" id="hotList"></ol>
+
+          <p class="list-note" id="scheduleNote">微博热搜 10.24 快照 · 每日 14:00 / 20:00 更新</p>
+        </div>
+
+        <!-- 话题详情视图 -->
+        <div class="view" id="topicView" hidden aria-labelledby="topicTitle">
+          <button class="back" id="backBtn" type="button">
+            <span aria-hidden="true">←</span> 回热搜榜
+          </button>
+
+          <div class="topic-head">
+            <span class="topic-tag" id="topicTag">娱乐</span>
+            <h2 id="topicTitle" tabindex="-1">热搜话题</h2>
+            <p class="topic-meta">
+              <span>热度 <b id="topicHeat">0万</b></span>
+              <span aria-hidden="true">·</span>
+              <a class="origin-link" id="topicLink" href="#" target="_blank" rel="noopener noreferrer">去微博看讨论 ↗</a>
+            </p>
+          </div>
+
+          <div class="brief">
+            <span class="brief-label">事件速览</span>
+            <p id="topicSummary">正在加载这条热搜的来龙去脉。</p>
+            <span class="brief-note">据标题与公开讨论整理，细节以原帖为准</span>
+          </div>
+
+          <div class="view" id="voteView">
+            <p class="vote-label">先站队，再发言</p>
+            <div class="options camps" id="options" role="radiogroup" aria-label="选择你的阵营"></div>
+
+            <button class="submit" id="submitBtn" type="button" disabled>
+              <span id="submitLabel">投出我的一票</span>
+              <span class="cta-icon" aria-hidden="true">↗</span>
+            </button>
+
+            <div class="hint">
+              <span class="avatars" aria-hidden="true">
+                <span class="av-1">瓜</span>
+                <span class="av-2">评</span>
+                <span class="av-3">观</span>
+              </span>
+              <span>已有 <b data-total>0</b> 位纯路人表过态</span>
+            </div>
+          </div>
+
+          <div class="view" id="resultView" role="region" aria-label="投票结果" hidden>
+            <div class="poll-top" style="justify-content: flex-start;">
+              <span class="result-kicker" id="resultKicker">VOTE COUNTED · 人气同款</span>
+            </div>
+
+            <div class="result-head">
+              <div class="result-copy">
+                <h3 id="resultTitle" tabindex="-1">不奇怪，大家都在这儿。</h3>
+                <p id="resultSummary">你选了「蹲个后续」。</p>
+              </div>
+              <div class="result-score">
+                <div class="big-share"><span id="bigPercent">38</span><em>%</em></div>
+                <small>与你同频</small>
+              </div>
+            </div>
+
+            <div class="results" id="results"></div>
+
+            <div class="result-actions">
+              <button class="ghost primary" id="revoteBtn" type="button">换种吃法 ↺</button>
+              <button class="ghost muted" id="backBtn2" type="button">回榜单 ↗</button>
+            </div>
+
+            <div class="talk">
+              <div class="talk-head">
+                <span class="talk-title">围观发言</span>
+                <span class="talk-count" id="talkCount">0 条</span>
+              </div>
+
+              <div class="talk-form">
+                <textarea class="talk-input" id="talkInput" rows="2" maxlength="80" placeholder="站完队了，说两句（最多 80 字）"></textarea>
+                <button class="talk-send" id="talkSend" type="button">发布</button>
+              </div>
+
+              <div class="talk-tabs" id="talkTabs" role="tablist" aria-label="按阵营筛选发言"></div>
+              <div class="talk-list" id="talkList"></div>
+              <p class="talk-empty" id="talkEmpty">还没有人发言，来当第一个。</p>
+            </div>
+
+            <p class="result-note">本机演示 · 不联网，也没有人在偷偷看你</p>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <footer class="site-foot">
+      <span>© 2026 凑热闹研究所</span>
+      <span class="tag">别光看，来都来了。</span>
+      <span>MADE FOR CROWD-WATCHERS</span>
+    </footer>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <noscript>
+    <div style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:12px 18px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(30,22,40,.85);color:#fff;font-size:12px;z-index:100;">请启用 JavaScript 后再来凑热闹。</div>
+  </noscript>
+
+  <script>
+    (() => {
+      const CAMP_META = [
+        { id: 'a', tint: '255, 107, 138', seed: 214 },
+        { id: 'b', tint: '110, 231, 215', seed: 161 },
+        { id: 'c', tint: '255, 184, 108', seed: 112 }
+      ];
+
+      const TOPICS = [
+        {
+          id: 't1',
+          rank: 1,
+          title: '红果短剧自砍摇钱树',
+          heat: 42,
+          cat: '娱乐',
+          summary: '红果短剧被讨论“自砍摇钱树”：平台调整了自家的分账与内容策略，业内关注这会怎样影响短剧制作方和演员的收入。',
+          camps: [
+            ['💼', '平台在断臂求生'],
+            ['🎬', '内容方被压太狠'],
+            ['🍉', '纯吃瓜，不站队']
+          ]
+        },
+        {
+          id: 't2',
+          rank: 2,
+          title: '长生 AG',
+          heat: 27,
+          cat: '电竞',
+          summary: 'AG 战队选手长生相关话题冲上热搜，讨论集中在人员变动与选手去留，完整说法还要等俱乐部官宣。',
+          camps: [
+            ['🛡️', '支持俱乐部决定'],
+            ['💔', '心疼选手'],
+            ['📢', '等官宣再说']
+          ]
+        },
+        {
+          id: 't3',
+          rank: 3,
+          title: '长征硬核知识点十问十答',
+          heat: 22,
+          cat: '时政',
+          summary: '一条长征主题的“硬核知识点十问十答”登上热搜，用问答形式梳理长征历史里的关键细节。',
+          camps: [
+            ['📚', '认真看完了'],
+            ['🔖', '先收藏再说'],
+            ['👀', '太长，只看标题']
+          ]
+        },
+        {
+          id: 't4',
+          rank: 4,
+          title: 'AG 退役',
+          heat: 16,
+          cat: '电竞',
+          summary: 'AG 战队成员退役的话题登上热搜，讨论集中在选手的职业生涯、战队新老交替和后续安排。',
+          camps: [
+            ['😭', '青春结束了'],
+            ['🛌', '早该好好休息'],
+            ['📢', '等正式官宣']
+          ]
+        },
+        {
+          id: 't5',
+          rank: 5,
+          title: '网友物理推导问界M9车速',
+          heat: 11,
+          cat: '汽车',
+          summary: '有网友用物理公式反推问界 M9 事发时的车速，引发“民间测算靠不靠谱”的讨论，官方结论仍待通报。',
+          camps: [
+            ['📐', '物理推导没毛病'],
+            ['🚓', '等官方通报'],
+            ['🍿', '不掺和，看结果']
+          ]
+        },
+        {
+          id: 't6',
+          rank: 6,
+          title: '曝自费高定艺人名字',
+          heat: 11,
+          cat: '时尚',
+          summary: '有爆料点名“自费买高定”的艺人，讨论集中在红毯高定的借与买，以及时尚资源到底有多少含金量。',
+          camps: [
+            ['💰', '自费也是本事'],
+            ['🙅', '借不到就别硬撑'],
+            ['🎀', '红毯而已，不必较真']
+          ]
+        },
+        {
+          id: 't7',
+          rank: 7,
+          title: '原来明星租一次高定这么贵啊',
+          heat: 11,
+          cat: '时尚',
+          summary: '高定租赁价格被扒出，网友惊讶于“只穿一次”的成本，顺带算起了明星红毯这笔账。',
+          camps: [
+            ['🧾', '贵得有道理'],
+            ['💸', '溢价太离谱'],
+            ['🍉', '和我没关系']
+          ]
+        },
+        {
+          id: 't8',
+          rank: 8,
+          title: '张小斐 救场',
+          heat: 11,
+          cat: '娱乐',
+          summary: '张小斐在某活动上被指临时救场，讨论集中在艺人的临场应变和主办方的流程安排。',
+          camps: [
+            ['👏', '救场很体面'],
+            ['�', '主办方该背锅'],
+            ['🎬', '现场应变好看']
+          ]
+        },
+        {
+          id: 't9',
+          rank: 9,
+          title: '蔡文静在张小斐之前走完红毯了',
+          heat: 11,
+          cat: '时尚',
+          summary: '芭莎相关活动上，蔡文静在张小斐之前走完红毯，网友据此讨论红毯出场顺序里的门道。',
+          camps: [
+            ['🔍', '顺序说明一切'],
+            ['🚫', '别过度解读'],
+            ['📋', '研究红毯顺序']
+          ]
+        },
+        {
+          id: 't10',
+          rank: 10,
+          title: '芭莎 有人在后台不出来',
+          heat: 11,
+          cat: '娱乐',
+          summary: '芭莎活动被曝有嘉宾在后台迟迟不出场，网友猜测原因，讨论红毯后台的临场调度。',
+          camps: [
+            ['🕵️', '耍大牌实锤'],
+            ['⏱️', '可能只是换装慢'],
+            ['😮‍💨', '主办方最惨']
+          ]
+        }
+      ];
+
+      TOPICS.forEach((topic) => {
+        topic.camps = topic.camps.map((camp, index) => ({
+          id: CAMP_META[index].id,
+          emoji: camp[0],
+          name: camp[1],
+          tint: CAMP_META[index].tint,
+          seed: CAMP_META[index].seed
+        }));
+      });
+
+      const STORAGE_KEY = 'cou-re-nao-hot:v3';
+      const numberFormat = new Intl.NumberFormat('zh-CN');
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const CHECK_SVG =
+        '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.4 8.2 6.4 11 12.6 4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+      const el = {
+        voteCard: document.getElementById('voteCard'),
+        listView: document.getElementById('listView'),
+        topicView: document.getElementById('topicView'),
+        hotList: document.getElementById('hotList'),
+        pollTitle: document.getElementById('pollTitle'),
+        topicTag: document.getElementById('topicTag'),
+        topicTitle: document.getElementById('topicTitle'),
+        topicHeat: document.getElementById('topicHeat'),
+        topicLink: document.getElementById('topicLink'),
+        topicSummary: document.getElementById('topicSummary'),
+        voteView: document.getElementById('voteView'),
+        options: document.getElementById('options'),
+        submitBtn: document.getElementById('submitBtn'),
+        submitLabel: document.getElementById('submitLabel'),
+        resultView: document.getElementById('resultView'),
+        resultKicker: document.getElementById('resultKicker'),
+        resultTitle: document.getElementById('resultTitle'),
+        resultSummary: document.getElementById('resultSummary'),
+        bigPercent: document.getElementById('bigPercent'),
+        results: document.getElementById('results'),
+        revoteBtn: document.getElementById('revoteBtn'),
+        backBtn: document.getElementById('backBtn'),
+        backBtn2: document.getElementById('backBtn2'),
+        talkCount: document.getElementById('talkCount'),
+        talkTabs: document.getElementById('talkTabs'),
+        talkList: document.getElementById('talkList'),
+        talkEmpty: document.getElementById('talkEmpty'),
+        talkInput: document.getElementById('talkInput'),
+        talkSend: document.getElementById('talkSend'),
+        scheduleNote: document.getElementById('scheduleNote'),
+        heatValue: document.getElementById('heatValue'),
+        heatCaption: document.getElementById('heatCaption'),
+        equalizer: document.getElementById('equalizer'),
+        dateLabel: document.getElementById('dateLabel'),
+        toast: document.getElementById('toast')
+      };
+
+      let optionEls = [];
+
+      function createTopicState(topic) {
+        /* 每个话题的示例票数按热度缩放，只用于展示比例。 */
+        const factor = 0.6 + topic.heat / 24;
+        return {
+          counts: Object.fromEntries(
+            topic.camps.map((camp) => [camp.id, Math.round(camp.seed * factor)])
+          ),
+          choice: null,
+          comments: []
+        };
+      }
+
+      function loadState() {
+        const store = Object.fromEntries(
+          TOPICS.map((topic) => [topic.id, createTopicState(topic)])
+        );
+        try {
+          const raw = window.localStorage.getItem(STORAGE_KEY);
+          if (!raw) return store;
+          const parsed = JSON.parse(raw);
+          for (const topic of TOPICS) {
+            const saved = parsed && parsed[topic.id];
+            if (!saved || typeof saved !== 'object') continue;
+            const counts = saved.counts && typeof saved.counts === 'object' ? saved.counts : {};
+            for (const camp of topic.camps) {
+              const value = Number(counts[camp.id]);
+              if (Number.isFinite(value) && value >= 0) {
+                store[topic.id].counts[camp.id] = Math.floor(value);
+              }
+            }
+            if (topic.camps.some((camp) => camp.id === saved.choice)) {
+              store[topic.id].choice = saved.choice;
+            }
+            if (Array.isArray(saved.comments)) {
+              store[topic.id].comments = saved.comments
+                .filter((comment) => comment && typeof comment.text === 'string' && topic.camps.some((camp) => camp.id === comment.camp))
+                .slice(0, 60)
+                .map((comment) => ({
+                  id: String(comment.id || Date.now()),
+                  camp: comment.camp,
+                  text: comment.text.slice(0, 80),
+                  ts: Number(comment.ts) || Date.now()
+                }));
+            }
+          }
+        } catch (error) {
+          /* 本地存储不可用时，投票仍在当前页面内生效。 */
+        }
+        return store;
+      }
+
+      let state = loadState();
+      let currentId = null;
+      let selected = null;
+      let talkFilter = 'all';
+      let toastTimer = null;
+      let refreshTimer = null;
+
+      function topicState() {
+        return currentId ? state[currentId] : null;
+      }
+
+      function currentTopic() {
+        return currentId ? TOPICS.find((topic) => topic.id === currentId) : null;
+      }
+
+      function totalVotes(s = topicState()) {
+        const topic = currentTopic();
+        if (!s || !topic) return 0;
+        return topic.camps.reduce((sum, camp) => sum + s.counts[camp.id], 0);
+      }
+
+      function percentOf(id, s = topicState()) {
+        if (!s) return 0;
+        const total = totalVotes(s);
+        if (!total) return 0;
+        return (s.counts[id] / total) * 100;
+      }
+
+      function formatPercent(value) {
+        const rounded = value.toFixed(1);
+        return rounded.endsWith('.0') ? rounded.slice(0, -2) : rounded;
+      }
+
+      function sortedCamps(s = topicState()) {
+        const topic = currentTopic();
+        if (!s || !topic) return [];
+        return [...topic.camps].sort((a, b) => s.counts[b.id] - s.counts[a.id]);
+      }
+
+      function saveState() {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (error) {
+          /* 本地存储不可用时，投票仍在当前页面内生效。 */
+        }
+      }
+
+      function buildEqualizer() {
+        const bars = 18;
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < bars; i += 1) {
+          const bar = document.createElement('span');
+          const height = 30 + Math.random() * 62;
+          bar.style.height = height + '%';
+          bar.style.setProperty('--d', (-Math.random() * 1.3).toFixed(2) + 's');
+          fragment.appendChild(bar);
+        }
+        el.equalizer.appendChild(fragment);
+      }
+
+      function updateHeatCard(topic) {
+        if (topic) {
+          el.heatValue.textContent = String(topic.heat);
+          el.heatCaption.textContent =
+            topic.cat + ' · 榜单第 ' + topic.rank + ' 位，热度 ' + topic.heat + ' 万。';
+        } else {
+          el.heatValue.textContent = '125';
+          el.heatCaption.textContent = '6 条娱乐瓜，够吃到明天。';
+        }
+      }
+
+      function updateStats() {
+        const s = topicState();
+        if (!s) return;
+        const total = totalVotes(s);
+        document.querySelectorAll('[data-total]').forEach((node) => {
+          node.textContent = numberFormat.format(total);
+        });
+      }
+
+      function renderList() {
+        el.hotList.innerHTML = TOPICS.map((topic) => {
+          const eaten = Boolean(state[topic.id] && state[topic.id].choice);
+          return (
+            '<li class="hot-row">' +
+              '<button class="hot-btn' + (eaten ? ' is-eaten' : '') + '" type="button" data-id="' + topic.id + '">' +
+                '<span class="hot-rank" aria-hidden="true">' + topic.rank + '</span>' +
+                '<span class="hot-main">' +
+                  '<span class="hot-title">' + topic.title + '</span>' +
+                  '<span class="hot-meta">' +
+                    '<span class="hot-cat">' + topic.cat + '</span>' +
+                    '<span class="hot-heat">' + topic.heat + '万</span>' +
+                    (eaten ? '<span class="hot-eaten">已吃</span>' : '') +
+                  '</span>' +
+                '</span>' +
+                '<span class="hot-go" aria-hidden="true">→</span>' +
+              '</button>' +
+            '</li>'
+          );
+        }).join('');
+      }
+
+      function renderOptionButtons() {
+        const topic = currentTopic();
+        if (!topic) return;
+        el.options.innerHTML = topic.camps.map((camp) =>
+          '<button class="option" type="button" role="radio" aria-checked="false"' +
+          ' data-id="' + camp.id + '" style="--tint: ' + camp.tint + ';">' +
+            '<span class="option-emoji" aria-hidden="true">' + camp.emoji + '</span>' +
+            '<span class="option-text"><strong>' + camp.name + '</strong></span>' +
+            '<span class="check" aria-hidden="true">' + CHECK_SVG + '</span>' +
+          '</button>'
+        ).join('');
+        optionEls = Array.from(el.options.querySelectorAll('.option'));
+      }
+
+      function renderOptions() {
+        const s = topicState();
+        if (!s) return;
+        optionEls.forEach((button) => {
+          const isSelected = button.dataset.id === selected;
+          button.classList.toggle('is-selected', isSelected);
+          button.setAttribute('aria-checked', String(isSelected));
+        });
+        el.submitBtn.disabled = !selected;
+        el.submitLabel.textContent = s.choice ? '确认换票' : '投出我的一票';
+      }
+
+      function showResult(celebrate = false, forceFocus = false) {
+        const s = topicState();
+        const topic = currentTopic();
+        if (!s || !topic || !s.choice) return;
+
+        const ranking = sortedCamps(s);
+        const mine = topic.camps.find((camp) => camp.id === s.choice);
+        const myShare = formatPercent(percentOf(mine.id, s));
+        const isTop = ranking[0].id === mine.id;
+
+        el.resultKicker.textContent = isTop
+          ? 'STANCE COUNTED · 多数派'
+          : 'STANCE COUNTED · 少数派';
+        el.resultTitle.textContent = isTop
+          ? '这队人多，声音也大。'
+          : '人少，但站得清楚。';
+        el.resultSummary.textContent =
+          '你站了「' + mine.name + '」，' + myShare + '% 的人和你在同一队。';
+        el.bigPercent.textContent = myShare;
+
+        el.results.innerHTML = ranking.map((camp, index) => {
+          const share = formatPercent(percentOf(camp.id, s));
+          const isMine = camp.id === s.choice;
+          const isWinner = index === 0;
+          const badges =
+            (isWinner ? '<em class="badge-top">人气阵营</em>' : '') +
+            (isMine ? '<em class="badge-you">你</em>' : '');
+          return (
+            '<div class="result-row' + (isMine ? ' is-mine' : '') + '"' +
+            ' style="--tint: ' + camp.tint + '; --w: ' + share + '%; --i: ' + index + '">' +
+              '<div class="result-meta">' +
+                '<span class="result-emoji" aria-hidden="true">' + camp.emoji + '</span>' +
+                '<span class="result-name">' + camp.name + badges + '</span>' +
+                '<span class="result-num"><b>' + numberFormat.format(s.counts[camp.id]) + '</b> 票 · ' + share + '%</span>' +
+              '</div>' +
+              '<div class="bar" aria-hidden="true"><span></span></div>' +
+            '</div>'
+          );
+        }).join('');
+
+        const shouldMoveFocus = forceFocus || el.voteView.contains(document.activeElement);
+        el.voteView.hidden = true;
+        el.resultView.hidden = false;
+        renderTalk();
+        if (shouldMoveFocus) el.resultTitle.focus({ preventScroll: true });
+
+        if (celebrate && !prefersReducedMotion.matches) {
+          launchBurst();
+        }
+      }
+
+      function launchBurst() {
+        const rect = el.voteCard.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height * 0.32;
+        const emojis = ['🍉', '✨', '🎉', '👀', '🔥', '💫', '🍿', '🫣'];
+
+        for (let i = 0; i < 18; i += 1) {
+          const particle = document.createElement('span');
+          const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.45;
+          const distance = 90 + Math.random() * 190;
+          particle.className = 'burst';
+          particle.textContent = emojis[i % emojis.length];
+          particle.style.left = originX + 'px';
+          particle.style.top = originY + 'px';
+          particle.style.fontSize = 14 + Math.random() * 12 + 'px';
+          particle.style.animationDelay = Math.random() * 0.08 + 's';
+          particle.style.setProperty('--x', Math.cos(angle) * distance + 'px');
+          particle.style.setProperty('--y', Math.sin(angle) * distance - 30 + 'px');
+          particle.style.setProperty('--r', (Math.random() - 0.5) * 360 + 'deg');
+          document.body.appendChild(particle);
+          particle.addEventListener('animationend', () => particle.remove(), { once: true });
+          window.setTimeout(() => particle.remove(), 1600);
+        }
+      }
+
+      function toast(message) {
+        window.clearTimeout(toastTimer);
+        el.toast.textContent = message;
+        el.toast.classList.add('show');
+        toastTimer = window.setTimeout(() => {
+          el.toast.classList.remove('show');
+        }, 2200);
+      }
+
+      function selectOption(id) {
+        selected = id;
+        renderOptions();
+      }
+
+      function openTopic(id) {
+        const topic = TOPICS.find((item) => item.id === id);
+        if (!topic) return;
+
+        currentId = id;
+        const s = state[id];
+        selected = s.choice;
+
+        el.topicTag.textContent = topic.cat;
+        el.topicTitle.textContent = topic.title;
+        el.topicHeat.textContent = topic.heat + '万';
+        el.topicSummary.textContent = topic.summary;
+        el.topicLink.href = 'https://s.weibo.com/weibo?q=' + encodeURIComponent(topic.title);
+        el.topicLink.setAttribute('aria-label', '去微博看「' + topic.title + '」的讨论');
+        talkFilter = 'all';
+        el.talkInput.value = '';
+        el.talkSend.disabled = true;
+
+        renderOptionButtons();
+        renderOptions();
+        updateStats();
+        updateHeatCard(topic);
+
+        el.listView.hidden = true;
+        el.topicView.hidden = false;
+
+        if (s.choice) {
+          showResult(false, true);
+        } else {
+          el.resultView.hidden = true;
+          el.voteView.hidden = false;
+          el.topicTitle.focus({ preventScroll: true });
+        }
+      }
+
+      function backToList() {
+        const focusId = currentId;
+        currentId = null;
+        selected = null;
+        el.topicView.hidden = true;
+        el.listView.hidden = false;
+        renderList();
+        updateHeatCard(null);
+        const button = el.hotList.querySelector('.hot-btn[data-id="' + focusId + '"]');
+        if (button) button.focus({ preventScroll: true });
+      }
+
+      function submitVote() {
+        const s = topicState();
+        if (!s || !selected) return;
+
+        if (s.choice === selected) {
+          showResult(false);
+          toast('还是这一票，眼光很稳');
+          return;
+        }
+
+        if (s.choice) {
+          s.counts[s.choice] = Math.max(0, s.counts[s.choice] - 1);
+        }
+        s.counts[selected] += 1;
+        s.choice = selected;
+
+        saveState();
+        updateStats();
+        renderOptions();
+        renderList();
+        showResult(true);
+        toast('这一票，记上了');
+      }
+
+      function switchToVote() {
+        const s = topicState();
+        if (!s) return;
+        el.resultView.hidden = true;
+        el.voteView.hidden = false;
+        selected = s.choice;
+        renderOptions();
+        el.topicTitle.focus({ preventScroll: true });
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[character]));
+      }
+
+      function formatClock(ts) {
+        const date = new Date(ts);
+        const now = new Date();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        if (date.toDateString() === now.toDateString()) {
+          return hours + ':' + minutes;
+        }
+        return (date.getMonth() + 1) + '/' + date.getDate() + ' ' + hours + ':' + minutes;
+      }
+
+      function renderTalk() {
+        const s = topicState();
+        const topic = currentTopic();
+        if (!s || !topic) return;
+
+        const commentCounts = {};
+        topic.camps.forEach((camp) => { commentCounts[camp.id] = 0; });
+        s.comments.forEach((comment) => {
+          commentCounts[comment.camp] = (commentCounts[comment.camp] || 0) + 1;
+        });
+
+        el.talkCount.textContent = s.comments.length + ' 条';
+
+        const tabs = [{ id: 'all', name: '全部', count: s.comments.length }].concat(
+          topic.camps.map((camp) => ({ id: camp.id, name: camp.name, count: commentCounts[camp.id] }))
+        );
+        el.talkTabs.innerHTML = tabs.map((tab) =>
+          '<button class="talk-tab' + (talkFilter === tab.id ? ' is-active' : '') + '"' +
+          ' type="button" role="tab" aria-selected="' + String(talkFilter === tab.id) + '"' +
+          ' data-filter="' + tab.id + '">' + escapeHtml(tab.name) + ' · ' + tab.count + '</button>'
+        ).join('');
+
+        const visible = s.comments.filter((comment) => talkFilter === 'all' || comment.camp === talkFilter);
+        el.talkList.innerHTML = visible.map((comment) => {
+          const camp = topic.camps.find((item) => item.id === comment.camp) || topic.camps[0];
+          return (
+            '<article class="talk-item' + (comment.camp === s.choice ? ' is-camp' : '') + '"' +
+            ' style="--tint: ' + camp.tint + ';">' +
+              '<div class="talk-meta">' +
+                '<span class="talk-camp">' + escapeHtml(camp.name) + '</span>' +
+                '<span class="talk-time">' + formatClock(comment.ts) + '</span>' +
+              '</div>' +
+              '<p class="talk-text">' + escapeHtml(comment.text) + '</p>' +
+            '</article>'
+          );
+        }).join('');
+
+        el.talkEmpty.hidden = visible.length > 0;
+      }
+
+      function postComment() {
+        const s = topicState();
+        if (!s || !s.choice) return;
+        const text = el.talkInput.value.trim();
+        if (!text) {
+          toast('先说点什么');
+          return;
+        }
+        s.comments.unshift({
+          id: 'c' + Date.now(),
+          camp: s.choice,
+          text: text.slice(0, 80),
+          ts: Date.now()
+        });
+        s.comments = s.comments.slice(0, 60);
+        el.talkInput.value = '';
+        el.talkSend.disabled = true;
+        saveState();
+        renderTalk();
+        toast('发言已记录');
+      }
+
+      const REFRESH_HOURS = [14, 20];
+
+      function nextRefreshTime(from = new Date()) {
+        const points = [];
+        for (let dayOffset = 0; dayOffset <= 1; dayOffset += 1) {
+          for (const hour of REFRESH_HOURS) {
+            const point = new Date(from);
+            point.setDate(point.getDate() + dayOffset);
+            point.setHours(hour, 0, 0, 0);
+            if (point.getTime() > from.getTime()) points.push(point);
+          }
+        }
+        return points.sort((a, b) => a - b)[0];
+      }
+
+      function scheduleText() {
+        const next = nextRefreshTime();
+        const hours = String(next.getHours()).padStart(2, '0');
+        const minutes = String(next.getMinutes()).padStart(2, '0');
+        return '10.24 快照 · 每日 14:00 / 20:00 更新 · 下次 ' + hours + ':' + minutes;
+      }
+
+      function scheduleRefresh() {
+        window.clearTimeout(refreshTimer);
+        const next = nextRefreshTime();
+        el.scheduleNote.textContent = scheduleText();
+        refreshTimer = window.setTimeout(() => {
+          renderList();
+          el.scheduleNote.textContent = scheduleText();
+          toast('到点更新 · 榜单已刷新');
+          scheduleRefresh();
+        }, Math.max(2000, next.getTime() - Date.now() + 1000));
+      }
+
+      function bindCardSheen() {
+        el.voteCard.addEventListener('pointermove', (event) => {
+          const rect = el.voteCard.getBoundingClientRect();
+          const x = ((event.clientX - rect.left) / rect.width) * 100;
+          const y = ((event.clientY - rect.top) / rect.height) * 100;
+          el.voteCard.style.setProperty('--mx', x + '%');
+          el.voteCard.style.setProperty('--my', y + '%');
+        });
+      }
+
+      function renderDate() {
+        const now = new Date();
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        el.dateLabel.textContent =
+          month + '.' + day + ' 周' + weekdays[now.getDay()] + ' · 宜吃瓜';
+      }
+
+      el.hotList.addEventListener('click', (event) => {
+        const button = event.target.closest('.hot-btn');
+        if (button) openTopic(button.dataset.id);
+      });
+
+      el.options.addEventListener('click', (event) => {
+        const button = event.target.closest('.option');
+        if (button) selectOption(button.dataset.id);
+      });
+
+      el.options.addEventListener('keydown', (event) => {
+        const button = event.target.closest('.option');
+        if (!button) return;
+        const index = optionEls.indexOf(button);
+        if (index < 0) return;
+
+        let nextIndex = null;
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          nextIndex = (index + 1) % optionEls.length;
+        } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+          nextIndex = (index - 1 + optionEls.length) % optionEls.length;
+        }
+        if (nextIndex === null) return;
+
+        event.preventDefault();
+        const nextButton = optionEls[nextIndex];
+        selectOption(nextButton.dataset.id);
+        nextButton.focus();
+      });
+
+      el.submitBtn.addEventListener('click', submitVote);
+      el.revoteBtn.addEventListener('click', switchToVote);
+      el.backBtn.addEventListener('click', backToList);
+      el.backBtn2.addEventListener('click', backToList);
+
+      el.talkTabs.addEventListener('click', (event) => {
+        const tab = event.target.closest('.talk-tab');
+        if (!tab) return;
+        talkFilter = tab.dataset.filter;
+        renderTalk();
+      });
+
+      el.talkSend.addEventListener('click', postComment);
+
+      el.talkInput.addEventListener('input', () => {
+        el.talkSend.disabled = el.talkInput.value.trim().length === 0;
+      });
+
+      el.talkInput.addEventListener('keydown', (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault();
+          postComment();
+        }
+      });
+
+      bindCardSheen();
+      buildEqualizer();
+      renderDate();
+      renderList();
+      updateHeatCard(null);
+      el.talkSend.disabled = true;
+      scheduleRefresh();
+    })();
+  </script>
+</body>
+</html>
